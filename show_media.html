@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>あなたの作品</title>
+    <style>
+        body { 
+            margin: 0; 
+            background: #111; 
+            display: grid; 
+            place-items: center; 
+            min-height: 100vh; 
+            font-family: sans-serif;
+            color: white;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .container {
+            text-align: center;
+        }
+        img, video {
+            max-width: 100%;
+            max-height: 70vh; /* ボタンのためのスペースを確保 */
+            border-radius: 10px;
+            display: block;
+            margin: 0 auto 20px auto;
+        }
+        
+        /* ★ ダウンロードボタンのスタイル ★ */
+        .download-button {
+            display: inline-block;
+            background-color: #4CAF50; /* 目立つ緑色 */
+            color: white;
+            padding: 12px 25px;
+            border-radius: 30px;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 18px;
+            transition: background-color 0.2s;
+        }
+        .download-button:hover {
+            background-color: #45a049;
+        }
+        .info-text {
+            font-size: 0.9rem;
+            opacity: 0.7;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>記念写真</h1>
+        
+        {% if filename.lower().endswith(('.jpg', '.jpeg', '.png')) %}
+            
+            <img src="/serve_file/{{ filename }}" alt="合成写真">
+            
+        {% elif filename.lower().endswith(('.mp4', '.mov')) %}
+            
+            <video src="/serve_file/{{ filename }}" 
+                   controls  
+                   autoplay  
+                   playsinline 
+                   loop
+                   muted="muted">
+                お使いのブラウザは動画再生に対応していません。
+            </video>
+            
+        {% endif %}
+
+        <a href="/serve_file/{{ filename }}" class="download-button" download>
+            ダウンロードする
+        </a>
+        
+        <p class="info-text">
+            （もし「？」と表示されても、<br>このボタンを押せばダウンロードできます）
+        </p>
+    </div>
+</body>
+</html>

@@ -1,0 +1,8 @@
+flask
+opencv-python-headless
+numpy
+qrcode
+moviepy
+flask-httpauth
+gunicorn
+cloudinary
