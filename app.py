@@ -1,3 +1,4 @@
+
 import cv2
 import numpy as np
 import qrcode
@@ -5,39 +6,45 @@ import uuid
 import base64
 import io
 import os
-from flask import Flask, request, jsonify, send_from_directory, render_template,send_file
-import moviepy.editor as mpy  # moviepy をインポート
-from flask_httpauth import HTTPBasicAuth # ★ Basic認証ライブラリ
+import tempfile # ★ 一時ファイル作成に必要
+from flask import Flask, request, jsonify, send_from_directory, render_template
+import moviepy.editor as mpy
+from flask_httpauth import HTTPBasicAuth
+import cloudinary # ★ Cloudinary をインポート
+import cloudinary.uploader # ★ アップローダーをインポート
+
+# --- Cloudinary設定 ---
+# (これはRenderの環境変数に設定するので、ここではos.environ.getを使います)
+cloudinary.config(
+    cloud_name = os.environ.get('CLOUDINARY_CLOUD_NAME'),
+    api_key = os.environ.get('CLOUDINARY_API_KEY'),
+    api_secret = os.environ.get('CLOUDINARY_API_SECRET')
+)
 
 # このスクリプト(app.py)がある場所を基準にします
 basedir = os.path.abspath(os.path.dirname(__file__))
 
-# --- 設定 ---
-UPLOAD_FOLDER = os.path.join(basedir, 'uploads') # ★絶対パスに変更
-BACKGROUND_FOLDER = os.path.join(basedir, 'backgrounds') # ★絶対パスに変更
-
-# ↓↓↓ ngrokを起動するたびに、ここのドメイン名を書き換える！ ↓↓↓
-YOUR_NGROK_DOMAIN = "prediplomatic-kori-instrumentally.ngrok-free.dev"
-# ↑↑↑ (あなたのngrokのURLに書き換えてください)
+# --- 基本設定 ---
+# UPLOAD_FOLDERは一時ファイル置き場としてのみ使用
+UPLOAD_FOLDER = os.path.join(basedir, 'uploads') 
+BACKGROUND_FOLDER = os.path.join(basedir, 'backgrounds')
 
 # --- アプリとBasic認証の初期化 ---
 app = Flask(__name__, static_folder='.', template_folder='.')
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['BACKGROUND_FOLDER'] = BACKGROUND_FOLDER
-auth = HTTPBasicAuth() # ★ Basic認証を初期化
+auth = HTTPBasicAuth()
 
-# ★ 学園祭用のIDとパスワードを設定
 USERS = {
     "staff": "ueno2025"
 }
 
 @auth.verify_password
 def verify_password(username, password):
-    """パスワードを検証する関数"""
     if username in USERS and USERS[username] == password:
         return username
 
-# --- グリーンバックの色味設定 (HSV色空間) ---
+# --- グリーンバックの色味設定 ---
 LOWER_GREEN = np.array([35, 100, 100])
 UPPER_GREEN = np.array([85, 255, 255])
 
@@ -55,20 +62,30 @@ def get_foreground_mask(image_data_url):
     return fg, mask_inv, img.shape
 
 def process_static_composite(fg, mask_inv, bg_image):
+    """静止画を合成し、CloudinaryにアップロードしてURLを返す"""
     bg_resized = cv2.resize(bg_image, (fg.shape[1], fg.shape[0]))
     mask = cv2.bitwise_not(mask_inv)
     bg = cv2.bitwise_and(bg_resized, bg_resized, mask=mask)
     final_image = cv2.add(fg, bg)
-    image_id = str(uuid.uuid4()) + ".jpg"
-    save_path = os.path.join(app.config['UPLOAD_FOLDER'], image_id)
-    cv2.imwrite(save_path, final_image)
-    return image_id
+    
+    # ファイルに保存せず、メモリ上でエンコード
+    ret, buf = cv2.imencode('.jpg', final_image)
+    if not ret:
+        raise Exception("静止画のエンコードに失敗")
+        
+    print("Cloudinaryへ静止画をアップロード中...")
+    # Cloudinary にメモリから直接アップロード
+    response = cloudinary.uploader.upload(
+        buf.tobytes(),
+        resource_type="image",
+        folder="gakusai2025" # Cloudinary上のフォルダ名
+    )
+    print("アップロード完了。")
+    return response['secure_url'] # ★ CloudinaryのURLを返す
 
 def process_video_composite(fg, mask_inv, bg_video_path):
+    """動画を合成し、CloudinaryにアップロードしてURLを返す"""
     cap = cv2.VideoCapture(bg_video_path)
-    if not cap.isOpened():
-        print("動画ファイルが開けません:", bg_video_path)
-        return None
     width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     fps = cap.get(cv2.CAP_PROP_FPS)
@@ -76,6 +93,7 @@ def process_video_composite(fg, mask_inv, bg_video_path):
     mask_inv_resized = cv2.resize(mask_inv, (width, height))
     mask_resized = cv2.bitwise_not(mask_inv_resized)
     processed_frames = []
+
     print(f"動画合成開始 (moviepy)... ( {int(cap.get(cv2.CAP_PROP_FRAME_COUNT))} フレーム)")
     while True:
         ret, frame = cap.read()
@@ -86,28 +104,39 @@ def process_video_composite(fg, mask_inv, bg_video_path):
         final_frame_rgb = cv2.cvtColor(final_frame_bgr, cv2.COLOR_BGR2RGB)
         processed_frames.append(final_frame_rgb)
     cap.release()
-    print("フレーム処理完了。moviepyで動画ファイル書き出し開始...")
+
     if not processed_frames:
-        print("処理するフレームがありませんでした。")
-        return None
-    try:
-        video_id = str(uuid.uuid4()) + ".mp4"
-        save_path = os.path.join(app.config['UPLOAD_FOLDER'], video_id)
-        clip = mpy.ImageSequenceClip(processed_frames, fps=fps)
-        clip.write_videofile(
-            save_path, 
-            codec='libx264', 
-            audio=False, 
-            threads=4, 
-            logger=None,
-            ffmpeg_params=["-pix_fmt", "yuv420p"] # iPhone互換性
-        )
-        clip.close()
-        print("動画合成完了！ (moviepy)")
-        return video_id
-    except Exception as e:
-        print(f"moviepyでの動画書き出しエラー: {e}")
-        return None
+        raise Exception("処理するフレームがありませんでした。")
+
+    # --- 一時ファイルに動画を書き出し ---
+    with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as temp_file:
+        save_path = temp_file.name
+        try:
+            print("一時ファイルへ動画書き出し開始...")
+            clip = mpy.ImageSequenceClip(processed_frames, fps=fps)
+            clip.write_videofile(
+                save_path, 
+                codec='libx264', 
+                audio=False, 
+                threads=4, 
+                logger=None,
+                ffmpeg_params=["-pix_fmt", "yuv420p"]
+            )
+            clip.close()
+            print("一時ファイル書き出し完了。Cloudinaryへアップロード中...")
+
+            # --- Cloudinaryに一時ファイルをアップロード ---
+            response = cloudinary.uploader.upload(
+                save_path,
+                resource_type="video",
+                folder="gakusai2025" # Cloudinary上のフォルダ名
+            )
+            print("アップロード完了。")
+            
+        finally:
+            os.remove(save_path) # ★ 一時ファイルを必ず削除
+
+        return response['secure_url'] # ★ CloudinaryのURLを返す
 
 def generate_qr_code(url):
     qr = qrcode.QRCode(version=1, box_size=10, border=5)
@@ -122,7 +151,7 @@ def generate_qr_code(url):
 # --- ルート（URLの定義） ---
 
 @app.route('/')
-@auth.login_required  # ★ Basic認証
+@auth.login_required
 def index():
     """撮影ページ (index.html) を表示"""
     try:
@@ -138,44 +167,28 @@ def background_file(filename):
     """背景選択用のサムネイル画像を表示"""
     return send_from_directory(app.config['BACKGROUND_FOLDER'], filename)
 
-@app.route('/media/<filename>')
-def show_media_page(filename):
-    """再生用HTMLページを表示するルート (QRコードの飛び先)"""
-    return render_template('show_media.html', filename=filename)
+@app.route('/media') # ★ /media/<filename> から変更
+def show_media_page():
+    """
+    再生用HTMLページを表示するルート (QRコードの飛び先)
+    CloudinaryのURLをクエリパラメータで受け取る
+    """
+    media_url = request.args.get('url') # ?url=... を受け取る
+    if not media_url:
+        return "Not Found", 404
+        
+    # ファイルタイプを判別
+    file_type = 'image'
+    if media_url.lower().endswith(('.mp4', '.mov')):
+        file_type = 'video'
+        
+    return render_template('show_media.html', media_url=media_url, file_type=file_type)
 
-@app.route('/serve_file/<filename>')
-def serve_media_file(filename):
-    """show_media.html が呼び出す、ファイル供給専用ルート"""
-    
-    # ★ ファイルのフルパスを構築
-    file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-
-    if not os.path.exists(file_path):
-        return "File not found", 404 # ファイル存在チェック
-
-    # MIMEタイプを決定
-    mimetype = None
-    if filename.lower().endswith(('.mp4', '.mov')):
-        mimetype = 'video/mp4'
-    elif filename.lower().endswith(('.jpg', '.jpeg')):
-        mimetype = 'image/jpeg'
-    elif filename.lower().endswith('.png'):
-        mimetype = 'image/png'
-
-    # ★ send_from_directory の代わりに send_file を使用
-    # ★ as_attachment=False で、ダウンロードではなく「インライン表示」を明示
-    response = send_file(file_path, mimetype=mimetype, as_attachment=False)
-    
-    # キャッシュを無効にするヘッダー
-    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
-    response.headers['Pragma'] = 'no-cache'
-    response.headers['Expires'] = '0'
-    
-    return response
+# ★★★ /serve_file/... ルートは不要になったので削除 ★★★
 
 @app.route('/upload', methods=['POST'])
 def upload_image():
-    """撮影データと背景IDを受け取り、合成して、QRコードを返す"""
+    """撮影データと背景IDを受け取り、合成し、QRコードを返す"""
     data = request.get_json()
     image_data_url = data['image']
     background_name = data['background']
@@ -190,24 +203,29 @@ def upload_image():
     bg_path = os.path.join(app.config['BACKGROUND_FOLDER'], background_name)
     if not os.path.exists(bg_path):
         return jsonify({"error": "背景ファイルが見つかりません"}), 404
+
     file_extension = os.path.splitext(background_name)[1].lower()
-    output_media_id = None
+    output_media_url = None # ★ CloudinaryのURLが入る
+    
     try:
         if file_extension in ['.jpg', '.jpeg', '.png']:
             bg_image = cv2.imread(bg_path)
-            output_media_id = process_static_composite(fg, mask_inv, bg_image)
+            output_media_url = process_static_composite(fg, mask_inv, bg_image)
         elif file_extension in ['.mp4', '.mov', '.avi']:
-            output_media_id = process_video_composite(fg, mask_inv, bg_path)
+            output_media_url = process_video_composite(fg, mask_inv, bg_path)
         else:
             return jsonify({"error": "対応していない背景ファイル形式です"}), 400
-        if output_media_id is None:
+        if output_media_url is None:
             raise Exception("合成処理に失敗しました")
     except Exception as e:
         print(f"合成エラー: {e}")
         return jsonify({"error": "合成処理に失敗"}), 500
 
-    media_url = f"https://{YOUR_NGROK_DOMAIN}/media/{output_media_id}"
-    qr_code_base_code = generate_qr_code(media_url)
+    # ★★★ QRコードのURLを、/media?url=... 形式に変更 ★★★
+    # app.pyは自分のドメインを知らない。/ から始めることで、
+    # ブラウザが自動的にドメイン(XXX.onrender.com)を補完してくれる。
+    qr_target_url = f"/media?url={output_media_url}"
+    qr_code_base_code = generate_qr_code(qr_target_url)
 
     return jsonify({"qr_code": qr_code_base_code})
 
@@ -215,10 +233,4 @@ def upload_image():
 if __name__ == '__main__':
     os.makedirs(UPLOAD_FOLDER, exist_ok=True)
     os.makedirs(BACKGROUND_FOLDER, exist_ok=True)
-    print("==============================================")
-    print(f" サーバー起動中...")
-    print(f" ngrokドメインを {YOUR_NGROK_DOMAIN} に設定しました")
-    print(f" PCの http://localhost:5000 で撮影画面を開いてください")
-    print(" (アクセス時にID 'staff' と 'ueno2025' が必要です)")
-    print("==============================================")
-    app.run(host='0.0.0.0', port=5000, debug=False)
+    app.run(host='0.0.0.0', port=5000) # Gunicornが本番ではこれを使う

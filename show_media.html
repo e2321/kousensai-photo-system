@@ -5,61 +5,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>あなたの作品</title>
     <style>
-        body { 
-            margin: 0; 
-            background: #111; 
-            display: grid; 
-            place-items: center; 
-            min-height: 100vh; 
-            font-family: sans-serif;
-            color: white;
-            padding: 20px;
-            box-sizing: border-box;
-        }
-        .container {
-            text-align: center;
-        }
-        img, video {
-            max-width: 100%;
-            max-height: 70vh; /* ボタンのためのスペースを確保 */
-            border-radius: 10px;
-            display: block;
-            margin: 0 auto 20px auto;
-        }
-        
-        /* ★ ダウンロードボタンのスタイル ★ */
-        .download-button {
-            display: inline-block;
-            background-color: #4CAF50; /* 目立つ緑色 */
-            color: white;
-            padding: 12px 25px;
-            border-radius: 30px;
-            text-decoration: none;
-            font-weight: bold;
-            font-size: 18px;
-            transition: background-color 0.2s;
-        }
-        .download-button:hover {
-            background-color: #45a049;
-        }
-        .info-text {
-            font-size: 0.9rem;
-            opacity: 0.7;
-            margin-top: 15px;
-        }
+        body { margin: 0; background: #111; display: grid; place-items: center; min-height: 100vh; font-family: sans-serif; color: white; padding: 20px; box-sizing: border-box; }
+        .container { text-align: center; }
+        img, video { max-width: 100%; max-height: 70vh; border-radius: 10px; display: block; margin: 0 auto 20px auto; }
+        .download-button { display: inline-block; background-color: #4CAF50; color: white; padding: 12px 25px; border-radius: 30px; text-decoration: none; font-weight: bold; font-size: 18px; }
+        .info-text { font-size: 0.9rem; opacity: 0.7; margin-top: 15px; }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>記念写真</h1>
         
-        {% if filename.lower().endswith(('.jpg', '.jpeg', '.png')) %}
+        {% if file_type == 'image' %}
             
-            <img src="/serve_file/{{ filename }}" alt="合成写真">
+            <img src="{{ media_url }}" alt="合成写真">
             
-        {% elif filename.lower().endswith(('.mp4', '.mov')) %}
+        {% elif file_type == 'video' %}
             
-            <video src="/serve_file/{{ filename }}" 
+            <video src="{{ media_url }}" 
                    controls  
                    autoplay  
                    playsinline 
@@ -70,12 +33,12 @@
             
         {% endif %}
 
-        <a href="/serve_file/{{ filename }}" class="download-button" download>
+        <a href="{{ media_url }}" class="download-button" download>
             ダウンロードする
         </a>
         
         <p class="info-text">
-            （もし「？」と表示されても、<br>このボタンを押せばダウンロードできます）
+            （ボタンを押してダウンロードしてください）
         </p>
     </div>
 </body>
