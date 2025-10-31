@@ -18,17 +18,16 @@
         }
         .header-title h1 { 
             font-size: 1.5em; 
-            margin: 0 10px 0 0; /* タイトルとアイコンの間にスペース */
+            margin: 0 10px 0 0;
         }
         .header-title .icon {
-            height: 50px; /* アイコンのサイズ */
+            height: 50px;
             width: 50px;
             object-fit: contain;
         }
 
         .media-grid { display: flex; flex-wrap: wrap; justify-content: space-around; gap: 15px; margin-top: 20px; }
         
-        /* 動画を優先表示するためのスタイル */
         .media-item { width: 45%; min-width: 150px; background: #fff; padding: 10px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05); }
         .media-item.full-width {
             width: 100%;
@@ -41,14 +40,14 @@
         .download-btn {
             display: block; width: 100%; margin: 5px 0; padding: 10px 5px; background-color: #007bff; 
             color: white; text-decoration: none; border: none; border-radius: 5px; font-size: 1em; font-weight: bold;
+            cursor: pointer; /* JavaScriptで処理するため、カーソルをボタンに */
             transition: background-color 0.2s; 
         }
         .download-btn:hover { background-color: #0056b3; }
 
         .logo { margin-top: 20px; font-size: 0.9em; color: #666; }
-        .logo img { height: 40px; width: auto; opacity: 0.7; } /* ロゴ画像のスタイル */
+        .logo img { height: 40px; width: auto; opacity: 0.7; }
 
-        /* スマホ向けに縦に並べる */
         @media (max-width: 600px) {
             .media-grid { flex-direction: column; }
             .media-item { width: 90%; }
@@ -64,14 +63,14 @@
             <img src="{{ url_for('static', filename='NICE.png') }}" alt="NICE" class="icon"> 
         </div>
         
-        <p style="color: #666;">写真（3枚）はそれぞれ個別ボタンで保存してください。</p>
+        <p style="color: #666;">写真（3枚）はそれぞれ個別のボタンで保存してください。</p>
         
         <div class="media-grid">
             
             {% for media in media_list %}
                 {% if media.type == 'video' %}
                     <div class="media-item full-width">
-                        <p style="font-weight: bold; color: #d9534f;">【動画】</p>
+                        <p style="font-weight: bold; color: #d9534f;">【動画作品】</p>
                         <video controls autoplay loop playsinline muted src="{{ media.url }}" preload="auto" class="preview-media"></video>
                     </div>
                 {% endif %}
@@ -83,7 +82,7 @@
                         <p style="font-weight: bold; color: #5cb85c;">【写真{{ loop.index }}】</p>
                         <img src="{{ media.url }}" alt="合成画像" class="preview-media">
                         
-                        <a href="{{ media.url }}" download class="download-btn">写真{{ loop.index }}を保存</a>
+                        <a href="#" onclick="forceDownload(event, '{{ media.url }}', 'photo_{{ loop.index }}.jpg')" class="download-btn">写真{{ loop.index }}を保存</a>
                     </div>
                 {% endif %}
             {% endfor %}
@@ -94,5 +93,60 @@
              <img src="{{ url_for('static', filename='logo.png') }}" alt="学園祭ロゴ">
         </div>
     </div>
+    
+    <script>
+        // データ取得からファイル名を付けてダウンロードさせる関数
+        function forceDownload(event, url, filename) {
+            event.preventDefault(); // リンクの通常の動作（新しいタブで開く）を停止
+            
+            // UIフィードバック
+            const originalText = event.target.textContent;
+            event.target.textContent = "保存中...";
+            event.target.style.backgroundColor = "#ffc107"; // 黄色に変化
+            event.target.style.pointerEvents = 'none'; // 連打防止
+            
+            // サーバーから画像データをバイナリ形式で取得
+            fetch(url)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.blob(); // Blob (バイナリデータ) として取得
+                })
+                .then(blob => {
+                    // ダウンロード用のBlob URLを作成
+                    const blobUrl = window.URL.createObjectURL(blob);
+                    
+                    // <a>タグを動的に作成し、ダウンロードをトリガー
+                    const a = document.createElement('a');
+                    a.href = blobUrl;
+                    a.download = filename; // ファイル名を指定
+                    document.body.appendChild(a);
+                    a.click(); // クリックイベントをトリガーしてダウンロード開始
+                    
+                    // クリーンアップ
+                    window.URL.revokeObjectURL(blobUrl);
+                    a.remove();
+
+                    // UIフィードバックを成功に戻す
+                    event.target.textContent = "保存完了!";
+                    event.target.style.backgroundColor = "#28a745"; // 緑色に変化
+
+                    // 5秒後にリセット
+                    setTimeout(() => {
+                        event.target.textContent = originalText;
+                        event.target.style.backgroundColor = "#007bff";
+                        event.target.style.pointerEvents = 'auto';
+                    }, 5000);
+                })
+                .catch(e => {
+                    console.error("ダウンロード失敗:", e);
+                    // エラーメッセージを表示し、元の状態に戻す
+                    event.target.textContent = "保存失敗 (タップで再試行)";
+                    event.target.style.backgroundColor = "#dc3545"; // 赤色に変化
+                    event.target.style.pointerEvents = 'auto';
+                });
+        }
+    </script>
 </body>
 </html>
