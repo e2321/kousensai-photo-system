@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>作品を保存 | 学園祭フォト</title>
+    <style>
+        body { font-family: sans-serif; background-color: #f0f0f0; margin: 0; padding: 20px; text-align: center; }
+        .container { max-width: 600px; margin: 0 auto; background-color: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); }
+        h1 { color: #333; font-size: 1.5em; margin-bottom: 10px; }
+        .media-grid { display: flex; flex-wrap: wrap; justify-content: space-around; gap: 15px; margin-top: 20px; }
+        
+        /* 4作品が横並びになりやすいように幅を調整 */
+        .media-item { width: 45%; min-width: 150px; background: #fff; padding: 10px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05); }
+        .preview-media { max-width: 100%; height: auto; border-radius: 5px; margin-bottom: 10px; background-color: #000; }
+        
+        .download-btn {
+            display: block; width: 100%; margin: 5px 0; padding: 10px 5px; background-color: #007bff; 
+            color: white; text-decoration: none; border: none; border-radius: 5px; font-size: 1em; font-weight: bold;
+            transition: background-color 0.2s; 
+        }
+        .download-btn:hover { background-color: #0056b3; }
+        
+        .zip-option { font-size: 0.9em; margin-top: 30px; color: #666; }
+        .zip-option a { color: #28a745; font-weight: bold; text-decoration: underline; }
+        
+        .logo { margin-top: 20px; font-size: 0.9em; color: #666; }
+
+        /* スマホ向けに縦に並べる */
+        @media (max-width: 600px) {
+            .media-grid { flex-direction: column; }
+            .media-item { width: 90%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📸 4種類の作品が完成しました！</h1>
+        <p style="color: #666;">写真（3枚）は個別ボタンで、動画（1本）は画面下の再生ボタンで確認してください。</p>
+        
+        <!-- ★★★ 個別プレビューと保存ボタン (動画はボタンなし) ★★★ -->
+        <div class="media-grid">
+            {% for media in media_list %}
+            <div class="media-item">
+                {% if media.type == 'video' %}
+                    <!-- 動画: ダウンロードボタンなし -->
+                    <p style="font-weight: bold; color: #d9534f;">【動画作品】</p>
+                    <video controls autoplay loop playsinline muted src="{{ media.url }}" preload="auto" class="preview-media"></video>
+                {% elif media.type == 'image' %}
+                    <!-- 静止画: ダウンロードボタンあり -->
+                    <p style="font-weight: bold; color: #5cb85c;">【写真作品】</p>
+                    <img src="{{ media.url }}" alt="合成画像" class="preview-media">
+                {% endif %}
+                
+                {% if media.type == 'image' %}
+                    <!-- 画像のみダウンロードボタンを表示 -->
+                    <a href="{{ media.url }}" download class="download-btn">この作品を保存</a>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        
+        <!-- ZIPオプションは残しておきます -->
+        <p class="zip-option">
+            全てまとめて保存したい場合は：<br>
+            <a href="/zip_download?urls={{ urls_base64 }}">
+                一括ZIPファイルをダウンロード (※解凍が必要です)
+            </a>
+        </p>
+
+        <div class="logo">
+            [あなたの学校名/企画名]
+        </div>
+    </div>
+</body>
+</html>
