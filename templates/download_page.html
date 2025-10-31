@@ -20,9 +20,7 @@
             transition: background-color 0.2s; 
         }
         .download-btn:hover { background-color: #0056b3; }
-        
-        .zip-option { font-size: 0.9em; margin-top: 30px; color: #666; }
-        .zip-option a { color: #28a745; font-weight: bold; text-decoration: underline; }
+
         
         .logo { margin-top: 20px; font-size: 0.9em; color: #666; }
 
@@ -35,41 +33,28 @@
 </head>
 <body>
     <div class="container">
-        <h1>📸 4種類の作品が完成しました！</h1>
+        <h1>合成が完了しました</h1>
         <p style="color: #666;">写真（3枚）は個別ボタンで、動画（1本）は画面下の再生ボタンで確認してください。</p>
         
-        <!-- ★★★ 個別プレビューと保存ボタン (動画はボタンなし) ★★★ -->
         <div class="media-grid">
             {% for media in media_list %}
             <div class="media-item">
                 {% if media.type == 'video' %}
-                    <!-- 動画: ダウンロードボタンなし -->
-                    <p style="font-weight: bold; color: #d9534f;">【動画作品】</p>
+                    <p style="font-weight: bold; color: #d9534f;">【動画】</p>
                     <video controls autoplay loop playsinline muted src="{{ media.url }}" preload="auto" class="preview-media"></video>
                 {% elif media.type == 'image' %}
-                    <!-- 静止画: ダウンロードボタンあり -->
-                    <p style="font-weight: bold; color: #5cb85c;">【写真作品】</p>
+                    <p style="font-weight: bold; color: #5cb85c;">【写真{{ media.index }}】</p>
                     <img src="{{ media.url }}" alt="合成画像" class="preview-media">
                 {% endif %}
                 
                 {% if media.type == 'image' %}
-                    <!-- 画像のみダウンロードボタンを表示 -->
-                    <a href="{{ media.url }}" download class="download-btn">この作品を保存</a>
+                    <a href="{{ media.url }}" download class="download-btn">写真{{ media.index }}を保存</a>
                 {% endif %}
             </div>
             {% endfor %}
         </div>
-        
-        <!-- ZIPオプションは残しておきます -->
-        <p class="zip-option">
-            全てまとめて保存したい場合は：<br>
-            <a href="/zip_download?urls={{ urls_base64 }}">
-                一括ZIPファイルをダウンロード (※解凍が必要です)
-            </a>
-        </p>
-
         <div class="logo">
-            [あなたの学校名/企画名]
+        <img src="/static/logo.png" alt="学園祭ロゴ" style="height: 40px; width: auto; opacity: 0.7;">        
         </div>
     </div>
 </body>

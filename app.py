@@ -1,10 +1,10 @@
 import os
 import base64
 from flask import Flask, request, render_template
-import urllib.parse # ★ urllib.parse をインポート
+import urllib.parse 
 
 # --- Renderアプリケーションの初期化 ---
-# ★★★ template_folder='.' を削除！Renderはデフォルトで'templates'フォルダを探します ★★★
+# template_folder='.' を削除！Renderはデフォルトで'templates'フォルダを探します
 app = Flask(__name__) 
 
 # Renderが稼働していることを確認するためのルート
@@ -29,12 +29,23 @@ def download_page():
         media_urls = urls_decoded.split(',')
         
         media_list = []
+        image_count = 0 # 静止画のカウント用カウンター
+        
         for url in media_urls:
             if url:
                 file_type = 'video' if url.lower().endswith(('.mp4', '.mov')) else 'image'
-                media_list.append({'url': url, 'type': file_type})
+                media_item = {'url': url, 'type': file_type}
+                
+                # 静止画の場合にのみ連番を割り当てる
+                if file_type == 'image':
+                    image_count += 1
+                    media_item['index'] = image_count # media_listにindexを追加
+                    
+                media_list.append(media_item)
 
         # テンプレートに渡すデータは templates/download_page.html に渡される
+        # ZIP機能の削除に伴い、urls_base64はテンプレート内で不要になりましたが、
+        # 他の用途で必要な可能性も考慮し、残しておきますが、今回は不要です。
         return render_template('download_page.html', 
                                media_list=media_list, 
                                urls_base64=urls_base64)
