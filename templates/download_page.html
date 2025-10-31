@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>作品を保存 | 学園祭フォト</title>
+    <title>3E 明石抗戦</title>
     <style>
         body { font-family: sans-serif; background-color: #f0f0f0; margin: 0; padding: 20px; text-align: center; }
         .container { max-width: 600px; margin: 0 auto; background-color: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); }
@@ -34,23 +34,32 @@
 <body>
     <div class="container">
         <h1>合成が完了しました</h1>
-        <p style="color: #666;">写真（3枚）は個別ボタンで、動画（1本）は画面下の再生ボタンで確認してください。</p>
+        <p style="color: #666;">写真（3枚）はそれぞれ個別に保存してください。</p>
         
         <div class="media-grid">
+            
+            <!-- ★★★ 1. 動画作品を優先して表示 ★★★ -->
             {% for media in media_list %}
-            <div class="media-item">
                 {% if media.type == 'video' %}
-                    <p style="font-weight: bold; color: #d9534f;">【動画】</p>
-                    <video controls autoplay loop playsinline muted src="{{ media.url }}" preload="auto" class="preview-media"></video>
-                {% elif media.type == 'image' %}
-                    <p style="font-weight: bold; color: #5cb85c;">【写真{{ media.index }}】</p>
-                    <img src="{{ media.url }}" alt="合成画像" class="preview-media">
+                    <div class="media-item full-width">
+                        <p style="font-weight: bold; color: #d9534f;">【動画作品】</p>
+                        <video controls autoplay loop playsinline muted src="{{ media.url }}" preload="auto" class="preview-media"></video>
+                        <!-- 動画なのでダウンロードボタンは表示しない -->
+                    </div>
                 {% endif %}
-                
+            {% endfor %}
+
+            <!-- ★★★ 2. 写真作品をその後で表示（グリッドで並ぶ） ★★★ -->
+            {% for media in media_list %}
                 {% if media.type == 'image' %}
-                    <a href="{{ media.url }}" download class="download-btn">写真{{ media.index }}を保存</a>
+                    <div class="media-item">
+                        <p style="font-weight: bold; color: #5cb85c;">【写真{{ loop.index }}】</p>
+                        <img src="{{ media.url }}" alt="合成画像" class="preview-media">
+                        
+                        <!-- 写真なのでダウンロードボタンを表示 -->
+                        <a href="{{ media.url }}" download class="download-btn">写真{{ loop.index }}を保存</a>
+                    </div>
                 {% endif %}
-            </div>
             {% endfor %}
         </div>
      <div class="logo">
