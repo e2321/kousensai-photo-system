@@ -3,42 +3,92 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>あなたの作品</title>
+    <title>学園祭フォトシステム | 記念作品</title>
     <style>
-        body { margin: 0; background: #111; display: grid; place-items: center; min-height: 100vh; font-family: sans-serif; color: white; padding: 20px; box-sizing: border-box; }
-        .container { text-align: center; }
-        img, video { max-width: 100%; max-height: 70vh; border-radius: 10px; display: block; margin: 0 auto 20px auto; }
-        .download-button { display: inline-block; background-color: #4CAF50; color: white; padding: 12px 25px; border-radius: 30px; text-decoration: none; font-weight: bold; font-size: 18px; }
-        .info-text { font-size: 0.9rem; opacity: 0.7; margin-top: 15px; }
+        body {
+            font-family: sans-serif;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 20px;
+            text-align: center;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #333;
+            font-size: 1.5em;
+            margin-bottom: 10px;
+        }
+        video, img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            /* ★ iOSの再生互換性のため、動画と画像両方に背景色を設定 */
+            background-color: #000; 
+        }
+        .download-btn {
+            display: block;
+            width: 80%;
+            margin: 0 auto 15px auto;
+            padding: 12px; /* 少し大きく */
+            background-color: #28a745; /* ダウンロードは緑で強調 */
+            color: white;
+            text-decoration: none;
+            border: none;
+            border-radius: 5px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .download-btn:hover {
+             background-color: #218838;
+        }
+        .logo {
+            margin-top: 20px;
+            font-size: 0.9em;
+            color: #666;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>記念写真</h1>
         
-        {% if file_type == 'image' %}
-            
-            <img src="{{ media_url }}" alt="合成写真">
-            
-        {% elif file_type == 'video' %}
-            
-            <video src="{{ media_url }}" 
-                   controls  
-                   autoplay  
-                   playsinline 
-                   loop
-                   muted="muted">
-                お使いのブラウザは動画再生に対応していません。
-            </video>
-            
+        {% if file_type == 'video' %}
+            <h1>🎉 記念動画ができました！</h1>
+        {% else %}
+            <h1>✨ 記念写真ができました！</h1>
         {% endif %}
 
-        <a href="{{ media_url }}" class="download-button" download>
-            ダウンロードする
-        </a>
         
-        <p class="info-text">
-            （ボタンを押してダウンロードしてください）
+        {% if file_type == 'video' %}
+            <!-- 動画の場合: iOS互換性のため muted を追加 -->
+            <video controls autoplay loop playsinline muted src="{{ media_url }}" preload="auto">
+                お使いのブラウザは動画タグをサポートしていません。
+            </video>
+        {% elif file_type == 'image' %}
+            <!-- 画像の場合 -->
+            <img src="{{ media_url }}" alt="合成画像">
+        {% endif %}
+
+        <!-- CloudinaryのURLをそのまま使ってダウンロードボタンを作成 -->
+        <!-- 'download'属性により、スマホでタップするとダウンロードが始まります -->
+        <a href="{{ media_url }}" download class="download-btn">
+            スマートフォンに保存
+        </a>
+
+        <div class="logo">
+            [あなたの学校名/企画名]
+        </div>
+        
+        <p style="font-size: 0.8em; color: #999; margin-top: 15px;">
+            ※動画・画像は[期間]後にCloudinaryサーバーから自動削除されます。
         </p>
     </div>
 </body>
