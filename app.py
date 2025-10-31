@@ -1,6 +1,7 @@
 import os
 import base64
 from flask import Flask, request, render_template
+import urllib.parse # ★ urllib.parse をインポート
 
 # --- Renderアプリケーションの初期化 ---
 # template_folder='.' を指定することで、Renderのルートディレクトリにある
@@ -21,14 +22,19 @@ def download_page():
     このルートがお客さんがQRコードを読み込んだ後のメインページになります。
     """
     # Base64エンコードされたURLリストをクエリパラメータ 'urls' から取得
-    urls_base64 = request.args.get('urls')
-    if not urls_base64:
+    urls_encoded = request.args.get('urls') # ★ 名前を encoded に変更
+    
+    if not urls_encoded:
         return "Error: No URLs provided.", 400
         
     try:
+        # ★★★ 修正箇所1: URLエンコードを元に戻す ★★★
+        # (例: %2B を + に戻す)
+        urls_base64 = urllib.parse.unquote_plus(urls_encoded)
+        
         # 1. Base64文字列をデコード
-        # URLをカンマ区切りの文字列に戻す
-        urls_decoded = base64.b64decode(urls_base64).decode()
+        # Base64文字列をバイト列に戻し、それを文字列にデコード
+        urls_decoded = base64.b64decode(urls_base64).decode('utf-8')
         
         # 2. カンマ区切りでURLのリストに分割
         media_urls = urls_decoded.split(',')
@@ -42,18 +48,16 @@ def download_page():
                 media_list.append({'url': url, 'type': file_type})
 
         # 4. テンプレートにデータを渡してレンダリング
-        # (urls_base64は、念のためHTMLに渡しておきますが、今回は使いません)
         return render_template('download_page.html', 
                                media_list=media_list, 
                                urls_base64=urls_base64)
                                
     except Exception as e:
         # デバッグログを Renderのコンソールに出力
-        print(f"Decoding Error: {e}")
+        # ★ Renderのコンソールでエラーのタイプが確認できます
+        print(f"Decoding/Rendering Error: {e}") 
         # お客さんにはエラーメッセージを返す
-        return f"エラーが発生しました。再度QRコードを読み込むか、スタッフに声をかけてください。", 500
-
-# ★★★ /zip_download ルートを削除 ★★★
+        return f"エラーが発生しました。再度QRコードを読み込むか、スタッフに声をかけてください。エラー情報: {e}", 500
 
 # --- サーバー起動 ---
 if __name__ == '__main__':
