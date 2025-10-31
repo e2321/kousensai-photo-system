@@ -2,8 +2,7 @@ import os
 from flask import Flask, request, render_template
 
 # RenderでWebサービスとしてデプロイするため、app名を明示的に指定
-app = Flask(__name__)
-
+app = Flask(__name__, template_folder='.')
 # Renderが稼働していることを確認するためのルート
 @app.route('/')
 def home():
