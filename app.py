@@ -86,6 +86,10 @@ def process_static_composite(fg, mask_inv, bg_image):
 def process_video_composite(fg, mask_inv, bg_video_path):
     """動画を合成し、CloudinaryにアップロードしてURLを返す"""
     cap = cv2.VideoCapture(bg_video_path)
+    if not cap.isOpened():
+        print("動画ファイルが開けません:", bg_video_path)
+        return None
+
     width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     fps = cap.get(cv2.CAP_PROP_FPS)
@@ -108,35 +112,39 @@ def process_video_composite(fg, mask_inv, bg_video_path):
     if not processed_frames:
         raise Exception("処理するフレームがありませんでした。")
 
-    # --- 一時ファイルに動画を書き出し ---
-    with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as temp_file:
-        save_path = temp_file.name
-        try:
-            print("一時ファイルへ動画書き出し開始...")
-            clip = mpy.ImageSequenceClip(processed_frames, fps=fps)
-            clip.write_videofile(
-                save_path, 
-                codec='libx264', 
-                audio=False, 
-                threads=4, 
-                logger=None,
-                ffmpeg_params=["-pix_fmt", "yuv420p"]
-            )
-            clip.close()
-            print("一時ファイル書き出し完了。Cloudinaryへアップロード中...")
+    # --- 一時ファイルに動画を書き出し (Render互換性を高める修正) ---
+    video_id = str(uuid.uuid4())
+    # ★ tempfileを使わず、確実な/tmpディレクトリに書き出す
+    save_path = f"/tmp/{video_id}.mp4" 
 
-            # --- Cloudinaryに一時ファイルをアップロード ---
-            response = cloudinary.uploader.upload(
-                save_path,
-                resource_type="video",
-                folder="gakusai2025" # Cloudinary上のフォルダ名
-            )
-            print("アップロード完了。")
-            
-        finally:
-            os.remove(save_path) # ★ 一時ファイルを必ず削除
+    try:
+        print("一時ファイルへ動画書き出し開始...")
+        clip = mpy.ImageSequenceClip(processed_frames, fps=fps)
+        clip.write_videofile(
+            save_path, 
+            codec='libx264', 
+            audio=False, 
+            threads=4, 
+            logger=None,
+            ffmpeg_params=["-pix_fmt", "yuv420p"]
+        )
+        clip.close()
+        print("一時ファイル書き出し完了。Cloudinaryへアップロード中...")
 
-        return response['secure_url'] # ★ CloudinaryのURLを返す
+        # --- Cloudinaryに一時ファイルをアップロード ---
+        response = cloudinary.uploader.upload(
+            save_path,
+            resource_type="video",
+            folder="gakusai2025"
+        )
+        print("アップロード完了。")
+        
+    finally:
+        # ★ 書き込みが失敗しても成功しても、ファイルを消す
+        if os.path.exists(save_path):
+            os.remove(save_path)
+
+    return response['secure_url']
 
 def generate_qr_code(url):
     qr = qrcode.QRCode(version=1, box_size=10, border=5)
