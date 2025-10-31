@@ -21,8 +21,8 @@
             margin: 0 10px 0 0; /* タイトルとアイコンの間にスペース */
         }
         .header-title .icon {
-            height: 25px; /* アイコンのサイズ */
-            width: 25px;
+            height: 50px; /* アイコンのサイズ */
+            width: 50px;
             object-fit: contain;
         }
 
@@ -64,14 +64,14 @@
             <img src="{{ url_for('static', filename='NICE.png') }}" alt="NICE" class="icon"> 
         </div>
         
-        <p style="color: #666;">写真（3枚）は個別ボタンで、動画（1本）は画面下の再生ボタンで確認してください。</p>
+        <p style="color: #666;">写真（3枚）はそれぞれ個別ボタンで保存してください。</p>
         
         <div class="media-grid">
             
             {% for media in media_list %}
                 {% if media.type == 'video' %}
                     <div class="media-item full-width">
-                        <p style="font-weight: bold; color: #d9534f;">【動画作品】</p>
+                        <p style="font-weight: bold; color: #d9534f;">【動画】</p>
                         <video controls autoplay loop playsinline muted src="{{ media.url }}" preload="auto" class="preview-media"></video>
                     </div>
                 {% endif %}
@@ -90,7 +90,7 @@
         </div>
         
         <div class="logo">
-             3E 明石抗戦
+             3E 
              <img src="{{ url_for('static', filename='logo.png') }}" alt="学園祭ロゴ">
         </div>
     </div>
