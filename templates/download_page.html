@@ -53,9 +53,9 @@
             </div>
             {% endfor %}
         </div>
-        <div class="logo">
-        <img src="/static/logo.png" alt="学園祭ロゴ" style="height: 40px; width: auto; opacity: 0.7;">        
-        </div>
+     <div class="logo">
+    <img src="{{ url_for('static', filename='logo.png') }}" alt="学園祭ロゴ" style="height: 40px; width: auto; opacity: 0.7;">
+</div>
     </div>
 </body>
 </html>
