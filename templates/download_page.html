@@ -7,11 +7,35 @@
     <style>
         body { font-family: sans-serif; background-color: #f0f0f0; margin: 0; padding: 20px; text-align: center; }
         .container { max-width: 600px; margin: 0 auto; background-color: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); }
-        h1 { color: #333; font-size: 1.5em; margin-bottom: 10px; }
+        
+        /* タイトルとアイコンをまとめるコンテナ */
+        .header-title { 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            margin-bottom: 10px; 
+            color: #333;
+        }
+        .header-title h1 { 
+            font-size: 1.5em; 
+            margin: 0 10px 0 0; /* タイトルとアイコンの間にスペース */
+        }
+        .header-title .icon {
+            height: 25px; /* アイコンのサイズ */
+            width: 25px;
+            object-fit: contain;
+        }
+
         .media-grid { display: flex; flex-wrap: wrap; justify-content: space-around; gap: 15px; margin-top: 20px; }
         
-        /* 4作品が横並びになりやすいように幅を調整 */
+        /* 動画を優先表示するためのスタイル */
         .media-item { width: 45%; min-width: 150px; background: #fff; padding: 10px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05); }
+        .media-item.full-width {
+            width: 100%;
+            min-width: 90%;
+            margin-bottom: 20px;
+        }
+
         .preview-media { max-width: 100%; height: auto; border-radius: 5px; margin-bottom: 10px; background-color: #000; }
         
         .download-btn {
@@ -21,50 +45,54 @@
         }
         .download-btn:hover { background-color: #0056b3; }
 
-        
         .logo { margin-top: 20px; font-size: 0.9em; color: #666; }
+        .logo img { height: 40px; width: auto; opacity: 0.7; } /* ロゴ画像のスタイル */
 
         /* スマホ向けに縦に並べる */
         @media (max-width: 600px) {
             .media-grid { flex-direction: column; }
             .media-item { width: 90%; }
+            .media-item.full-width { width: 90%; }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>合成が完了しました</h1>
-        <p style="color: #666;">写真（3枚）はそれぞれ個別に保存してください。</p>
+        
+        <div class="header-title">
+            <h1>合成が完了しました</h1>
+            <img src="{{ url_for('static', filename='NICE.png') }}" alt="NICE" class="icon"> 
+        </div>
+        
+        <p style="color: #666;">写真（3枚）は個別ボタンで、動画（1本）は画面下の再生ボタンで確認してください。</p>
         
         <div class="media-grid">
             
-            <!-- ★★★ 1. 動画作品を優先して表示 ★★★ -->
             {% for media in media_list %}
                 {% if media.type == 'video' %}
                     <div class="media-item full-width">
                         <p style="font-weight: bold; color: #d9534f;">【動画作品】</p>
                         <video controls autoplay loop playsinline muted src="{{ media.url }}" preload="auto" class="preview-media"></video>
-                        <!-- 動画なのでダウンロードボタンは表示しない -->
                     </div>
                 {% endif %}
             {% endfor %}
 
-            <!-- ★★★ 2. 写真作品をその後で表示（グリッドで並ぶ） ★★★ -->
             {% for media in media_list %}
                 {% if media.type == 'image' %}
                     <div class="media-item">
                         <p style="font-weight: bold; color: #5cb85c;">【写真{{ loop.index }}】</p>
                         <img src="{{ media.url }}" alt="合成画像" class="preview-media">
                         
-                        <!-- 写真なのでダウンロードボタンを表示 -->
                         <a href="{{ media.url }}" download class="download-btn">写真{{ loop.index }}を保存</a>
                     </div>
                 {% endif %}
             {% endfor %}
         </div>
-     <div class="logo">
-    <img src="{{ url_for('static', filename='logo.png') }}" alt="学園祭ロゴ" style="height: 40px; width: auto; opacity: 0.7;">
-</div>
+        
+        <div class="logo">
+             3E 明石抗戦
+             <img src="{{ url_for('static', filename='logo.png') }}" alt="学園祭ロゴ">
+        </div>
     </div>
 </body>
 </html>
